@@ -11,8 +11,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/external-dns/endpoint"
+	"sigs.k8s.io/external-dns/source"
 	"slices"
 	"strings"
 	"text/template"
@@ -49,10 +49,10 @@ type Storage struct {
 	configTemplate  *template.Template
 }
 
-func NewStorage(name, namespace, configPath string) Storage {
+func NewStorage(name, namespace, configPath, server string) Storage {
 	// Set up the kubernetes config once at startup
 	// TODO: Use a cache/watcher to minimize roundtrips
-	config, err := clientcmd.BuildConfigFromFlags("", configPath)
+	config, err := source.GetRestConfig(configPath, server)
 	if err != nil {
 		log.WithError(err).Fatal("Could not load kubeconfig")
 	}

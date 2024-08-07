@@ -6,11 +6,9 @@ import (
 	"github.com/predakanga/external-dns-configmap-provider/pkg"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"k8s.io/client-go/util/homedir"
 	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"regexp"
 	"sigs.k8s.io/external-dns/endpoint"
 	"time"
@@ -18,7 +16,7 @@ import (
 
 const baseLogLevel = log.InfoLevel
 
-var kubeConfig, targetNamespace, targetName, listenAddress string
+var kubeServer, kubeConfig, targetNamespace, targetName, listenAddress string
 var verbosity int
 var regexDomainFilter, regexDomainExclusion string
 var domainFilter, excludeDomains []string
@@ -55,7 +53,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		// Create the web server
-		storage := pkg.NewStorage(targetName, targetNamespace, kubeConfig)
+		storage := pkg.NewStorage(targetName, targetNamespace, kubeConfig, kubeServer)
 		handler := pkg.NewProvider(domainFilterObj, storage, allowWildcards)
 		server := http.Server{
 			Addr:    listenAddress,
@@ -88,11 +86,8 @@ func Execute(version string) {
 }
 
 func init() {
-	if home := homedir.HomeDir(); home != "" {
-		rootCmd.PersistentFlags().StringVar(&kubeConfig, "kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
-	} else {
-		rootCmd.PersistentFlags().StringVar(&kubeConfig, "kubeconfig", "", "absolute path to the kubeconfig file")
-	}
+	rootCmd.PersistentFlags().StringVar(&kubeServer, "server", "", "The Kubernetes API server to connect to (default: auto-detect)")
+	rootCmd.PersistentFlags().StringVar(&kubeConfig, "kubeconfig", "", "Retrieve target cluster configuration from a Kubernetes configuration file (default: auto-detect)")
 	rootCmd.PersistentFlags().CountVarP(&verbosity, "verbose", "v", "increase log verbosity")
 	rootCmd.Flags().StringVarP(&targetNamespace, "namespace", "n", "default", "namespace for the managed ConfigMap")
 	rootCmd.Flags().StringVarP(&targetName, "output", "o", "", "desired ConfigMap name")
